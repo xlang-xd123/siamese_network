@@ -1,6 +1,54 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+class Cnn9Net(nn.Module):
+    def __init__(self,out = 4):
+        super(Cnn9Net, self).__init__()
+
+        self.convnet = nn.Sequential(nn.Conv2d(1, 32, 3,1,1), nn.PReLU(),
+                                     nn.MaxPool2d(2, stride=1,padding=1),
+                                     nn.Conv2d(32, 64, 5), nn.PReLU(),
+                                     nn.MaxPool2d(2, stride=2,padding=1))
+        self.convnet2 = nn.Sequential(nn.Conv2d(64, 64, 3,1,1), nn.PReLU(),
+                                     nn.MaxPool2d(2, stride=1,padding=1),
+                                     nn.Conv2d(64, 64, 1,1,1), nn.PReLU(),
+                                     nn.MaxPool2d(2, stride=1,padding=1))
+        self.convnet3= nn.Sequential(nn.Conv2d(64, 64, 3), nn.PReLU(),
+                                     nn.MaxPool2d(2, stride=1,padding=1),
+                                     nn.Conv2d(64, 64, 1), nn.PReLU(),
+                                     nn.MaxPool2d(2, stride=1,padding=1))
+        self.convnet4 = nn.Sequential(nn.Conv2d(64, 64, 3), nn.PReLU(),
+                                     nn.MaxPool2d(2, stride=1,padding=1),
+                                     nn.Conv2d(64, 64, 1), nn.PReLU(),
+                                      nn.MaxPool2d(2, stride=1, padding=1))
+        self.convnet5 = nn.Sequential(nn.Conv2d(64, 64, 5), nn.PReLU(),
+                                     nn.AvgPool2d(13, stride=1,padding=0))
+
+        self.fc = nn.Sequential(nn.Linear(64 , 64),
+                                # nn.PReLU(),
+                                # nn.Linear(256, 256),
+                                nn.PReLU(),
+                                nn.Linear(64, out)
+                                )
+        # print('out = out = ' + str(out))
+
+    def forward(self, x):
+        # print(x.shape)
+        output = self.convnet(x)
+        # print(output.shape)
+        output = self.convnet2(output)
+        # print(output.shape)
+        output = self.convnet3(output)
+        # print(output.shape)
+        output = self.convnet4(output)
+        # print(output.shape)
+        output = self.convnet5(output)
+        # print(output.shape)
+
+        output = output.view(output.size()[0], -1)
+        # print(output.shape)
+        output = self.fc(output)
+        return output
 
 class EmbeddingNet(nn.Module):
     def __init__(self,out = 4):

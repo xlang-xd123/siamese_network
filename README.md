@@ -37,8 +37,9 @@ python main.py --backbone 1 --ues4imgextend 1 --backbone_out 4
 
 
 目前效果最好的方法：
+AUC ： 0.825 EER： 0.246
 
 ```
-python main.py --backbone 0 --use_marginal True
+python main.py --backbone 2 --use_marginal True
 ```
 

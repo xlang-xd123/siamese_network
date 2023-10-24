@@ -79,6 +79,7 @@ def load_model(opt):
         backbone = resnet18(opt.backbone_out)
     elif opt.backbone == 2 :
         print('load cnn9')
+        backbone = Cnn9Net(opt.backbone_out)
         #todo
         pass
 
