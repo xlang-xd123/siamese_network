@@ -1,34 +1,52 @@
 import torch.nn as nn
 import torch.nn.functional as F
+def smart_activation(opt,feature = None):
+    if opt.activation_funciton == 'PReLU':
+        a =  nn.PReLU()
+    elif opt.activation_funciton == 'ReLU':
+        a = nn.ReLU()
+    elif opt.activation_funciton == 'LeakyReLU':
+        a = nn.LeakyReLU()
+    elif opt.activation_funciton == 'RReLU':
+        a = nn.RReLU()
+    elif opt.activation_funciton == 'PReLU':
+        a = nn.PReLU()
+    else:
+        print('not find the activation_funciton ,please check! (PReLU,ReLU,LeakyReLU,RReLU,PReLU)')
+        return None
+    if opt.add_batchnorm and feature:
+        return nn.Sequential(a,nn.BatchNorm2d(feature))
+
+    return  a ;
 
 class Cnn9Net(nn.Module):
-    def __init__(self,out = 4):
+    def __init__(self,opt):
         super(Cnn9Net, self).__init__()
 
-        self.convnet = nn.Sequential(nn.Conv2d(1, 32, 3,1,1), nn.PReLU(),
+        self.convnet = nn.Sequential(nn.Conv2d(1, 32, 3,1,1), smart_activation(opt,32),
                                      nn.MaxPool2d(2, stride=1,padding=1),
-                                     nn.Conv2d(32, 64, 5), nn.PReLU(),
+                                     nn.Conv2d(32, 64, 5), smart_activation(opt,64),
                                      nn.MaxPool2d(2, stride=2,padding=1))
-        self.convnet2 = nn.Sequential(nn.Conv2d(64, 64, 3,1,1), nn.PReLU(),
+        self.convnet2 = nn.Sequential(nn.Conv2d(64, 64, 3,1,1), smart_activation(opt,64),
                                      nn.MaxPool2d(2, stride=1,padding=1),
-                                     nn.Conv2d(64, 64, 1,1,1), nn.PReLU(),
+                                     nn.Conv2d(64, 64, 1,1,1), smart_activation(opt,64),
                                      nn.MaxPool2d(2, stride=1,padding=1))
-        self.convnet3= nn.Sequential(nn.Conv2d(64, 64, 3), nn.PReLU(),
+        self.convnet3= nn.Sequential(nn.Conv2d(64, 64, 3), smart_activation(opt,64),
                                      nn.MaxPool2d(2, stride=1,padding=1),
-                                     nn.Conv2d(64, 64, 1), nn.PReLU(),
+                                     nn.Conv2d(64, 64, 1), smart_activation(opt,64),
                                      nn.MaxPool2d(2, stride=1,padding=1))
-        self.convnet4 = nn.Sequential(nn.Conv2d(64, 64, 3), nn.PReLU(),
+        self.convnet4 = nn.Sequential(nn.Conv2d(64, 64, 3), smart_activation(opt,64),
                                      nn.MaxPool2d(2, stride=1,padding=1),
-                                     nn.Conv2d(64, 64, 1), nn.PReLU(),
+                                     nn.Conv2d(64, 64, 1), smart_activation(opt,64),
                                       nn.MaxPool2d(2, stride=1, padding=1))
-        self.convnet5 = nn.Sequential(nn.Conv2d(64, 64, 5), nn.PReLU(),
+        self.convnet5 = nn.Sequential(nn.Conv2d(64, 64, 5), smart_activation(opt),
                                      nn.AvgPool2d(13, stride=1,padding=0))
 
         self.fc = nn.Sequential(nn.Linear(64 , 64),
                                 # nn.PReLU(),
                                 # nn.Linear(256, 256),
-                                nn.PReLU(),
-                                nn.Linear(64, out)
+                                smart_activation(opt),
+                                nn.Linear(64, opt.backbone_out)
                                 )
         # print('out = out = ' + str(out))
 
@@ -51,19 +69,19 @@ class Cnn9Net(nn.Module):
         return output
 
 class EmbeddingNet(nn.Module):
-    def __init__(self,out = 4):
+    def __init__(self,opt):
         super(EmbeddingNet, self).__init__()
 
-        self.convnet = nn.Sequential(nn.Conv2d(1, 32, 5), nn.PReLU(),
+        self.convnet = nn.Sequential(nn.Conv2d(1, 32, 5), smart_activation(opt,32),
                                      nn.MaxPool2d(2, stride=2),
-                                     nn.Conv2d(32, 64, 5), nn.PReLU(),
+                                     nn.Conv2d(32, 64, 5), smart_activation(opt,64),
                                      nn.MaxPool2d(2, stride=2))
 
         self.fc = nn.Sequential(nn.Linear(64 * 4 * 4, 256),
-                                nn.PReLU(),
+                                smart_activation(opt),
                                 nn.Linear(256, 256),
-                                nn.PReLU(),
-                                nn.Linear(256, out)
+                                smart_activation(opt),
+                                nn.Linear(256,opt.backbone_out)
                                 )
         # print('out = out = ' + str(out))
 
@@ -71,19 +89,6 @@ class EmbeddingNet(nn.Module):
         output = self.convnet(x)
         output = output.view(output.size()[0], -1)
         output = self.fc(output)
-        return output
-
-    def get_embedding(self, x):
-        return self.forward(x)
-
-
-class EmbeddingNetL2(EmbeddingNet):
-    def __init__(self):
-        super(EmbeddingNetL2, self).__init__()
-
-    def forward(self, x):
-        output = super(EmbeddingNetL2, self).forward(x)
-        output /= output.pow(2).sum(1, keepdim=True).sqrt()
         return output
 
     def get_embedding(self, x):
@@ -143,11 +148,11 @@ def conv3x3(in_planes, out_planes, stride=1):
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes,opt, stride=1,downsample=None):
         super(BasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU()
         self.conv2 = conv3x3(planes, planes)
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
@@ -173,8 +178,9 @@ class BasicBlock(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes, grayscale):
+    def __init__(self, block, layers, num_classes, grayscale,opt):
         self.inplanes = 64
+        self.opt = opt
         if grayscale:
             in_dim = 1
         else:
@@ -192,6 +198,7 @@ class ResNet(nn.Module):
         self.avgpool = nn.AvgPool2d(7, stride=1)
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
+
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:  # 看上面的信息是否需要卷积修改，从而满足相加条件
@@ -202,10 +209,10 @@ class ResNet(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers.append(block(self.inplanes, planes, self.opt,stride, downsample))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+            layers.append(block(self.inplanes, planes,self.opt))
 
         return nn.Sequential(*layers)
 
@@ -228,10 +235,10 @@ class ResNet(nn.Module):
         # probas = F.softmax(logits, dim=1)
         # return logits, probas
         return logits
-def resnet18(num_classes):
+def resnet18(opt):
     """Constructs a ResNet-18 model."""
     model = ResNet(block=BasicBlock,
                    layers=[2, 2, 2, 2],
-                   num_classes=num_classes,
-                   grayscale=True)
+                   num_classes=opt.backbone_out,
+                   grayscale=True,opt = opt)
     return model

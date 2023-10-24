@@ -25,11 +25,13 @@ def parse_opt(known=False):
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
     parser.add_argument('--loss_fn', type=str, default='ContrastiveLoss', help='choose loss function')
     parser.add_argument('--log_interval', type=int, default= 100, help='')
-    parser.add_argument('--epochs', type=int, default=10, help='total training epochs')
+    parser.add_argument('--epochs', type=int, default=5, help='total training epochs')
     parser.add_argument('--batch-size', type=int, default=128, help='total batch size for all GPUs, -1 for autobatch')
     parser.add_argument('--debug_mode', type=bool, default=False, help='help debug')
     parser.add_argument('--backbone_out', type=int, default=4, help='dimension of the feature')
     parser.add_argument('--use_marginal', type=bool, default=False, help='')
+    parser.add_argument('--activation_funciton', type=str, default='PReLU', help='')
+    parser.add_argument('--add_batchnorm', type= int, default=1, help='')
     return parser.parse_args()
 def load_data(opt):
     if opt.debug_mode:
@@ -73,13 +75,13 @@ def load_data(opt):
 def load_model(opt):
     if opt.backbone == 0:
         print('load embeddingNet')
-        backbone = EmbeddingNet(opt.backbone_out)
+        backbone = EmbeddingNet(opt)
     elif opt.backbone == 1 :
         print('load resnet18')
-        backbone = resnet18(opt.backbone_out)
+        backbone = resnet18(opt)
     elif opt.backbone == 2 :
         print('load cnn9')
-        backbone = Cnn9Net(opt.backbone_out)
+        backbone = Cnn9Net(opt)
         #todo
         pass
 
@@ -118,6 +120,11 @@ def load_metrics(opt):
     ret.append(b)
 
     return ret
+def print_log(opt):
+    print('activation function:',opt.activation_funciton)
+    if opt.add_batchnorm:
+        print('add batchnorm')
+
 def main(opt):
     # 载入 train 和 test data,封装成dataloader
     siamese_train_loader,siamese_test_loader = load_data(opt)
@@ -130,6 +137,8 @@ def main(opt):
     # 载入 eer ，auc 计算函数
     metrics = load_metrics(opt)
     # 开始训练。
+    print_log(opt)
+
     fit(siamese_train_loader, siamese_test_loader, model, loss_fn, optimizer, scheduler, opt.epochs, opt.use_cuda, opt.log_interval,
         metrics=metrics, metric_fc=metric_fc)
 
