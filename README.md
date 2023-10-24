@@ -26,6 +26,16 @@ python main.py --backbone 1 --ues4imgextend 1 --backbone_out 4
 
 --debug_mode 这个是调试代码时候用的。debug 模式可以加快数据集的读入速度。
 
+--activation_funciton 选择激活函数，PReLU,ReLU,LeakyReLU,RReLU,PReLU 默认 PReLU
+
+--add_batchnorm  选择是否添加batchnorm 默认为 1 不添加选0
+
+--optimizer 选择优化器 ，Adam，SGD，AdamW，sgd-nestov 
+
+
+
+
+
 其他可调参数
 
 --lr  ： learning rate 默认为1e-4
@@ -40,6 +50,6 @@ python main.py --backbone 1 --ues4imgextend 1 --backbone_out 4
 AUC ： 0.825         EER： 0.246
 
 ```
-python main.py --backbone 2 --use_marginal True
+python main.py --backbone 2 --use_marginal True --activation_funciton RReLU 
 ```
 

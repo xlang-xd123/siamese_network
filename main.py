@@ -30,8 +30,10 @@ def parse_opt(known=False):
     parser.add_argument('--debug_mode', type=bool, default=False, help='help debug')
     parser.add_argument('--backbone_out', type=int, default=4, help='dimension of the feature')
     parser.add_argument('--use_marginal', type=bool, default=False, help='')
-    parser.add_argument('--activation_funciton', type=str, default='PReLU', help='')
+    parser.add_argument('--activation_funciton', type=str, default='PReLU', help='PReLU,ReLU,LeakyReLU,RReLU,PReLU')
     parser.add_argument('--add_batchnorm', type= int, default=1, help='')
+    parser.add_argument('--optimizer', type=str, default='Adam', help='Adam,SGD,sgd-nestov')
+
     return parser.parse_args()
 def load_data(opt):
     if opt.debug_mode:
@@ -101,13 +103,27 @@ def load_loss(opt):
 def load_optimizer(opt,model):
     if opt.use_marginal and not opt.ues4imgextend:#如果使用marginal
         print('use marginal')
+
         metric_fc = ArcMarginProduct(opt.backbone_out,2)
+        param = [{'params': model.parameters()}, {'params': metric_fc.parameters()}]
         if opt.use_cuda:
             metric_fc.cuda()
-        optimizer = optim.Adam([{'params': model.parameters()}, {'params': metric_fc.parameters()}], lr=opt.lr)
+
+        # optimizer = optim.Adam([{'params': model.parameters()}, {'params': metric_fc.parameters()}], lr=opt.lr)
     else:
         metric_fc = None
-        optimizer = optim.Adam(model.parameters(), lr=opt.lr)
+        param = model.parameters()
+        # optimizer = optim.Adam(model.parameters(), lr=opt.lr)
+    if opt.optimizer =='Adam':
+        optimizer = optim.Adam(param, lr=opt.lr)
+    elif opt.optimizer =='SGD':
+        optimizer = optim.SGD(param, lr=opt.lr)
+    elif opt.optimizer == 'AdamW':
+        optimizer = optim.AdamW(param, lr=opt.lr, correct_bias=False)
+    elif opt.optimizer == 'sgd-nestov':
+        optimizer = optim.SGD(param, lr=opt.lr, nesterov= True)
+
+
     scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
     return optimizer,scheduler,metric_fc
 def load_metrics(opt):
