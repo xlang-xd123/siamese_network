@@ -53,3 +53,24 @@ AUC ： 0.825         EER： 0.246
 python main.py --backbone 2 --use_marginal True --activation_funciton RReLU 
 ```
 
+
+
+10.26
+
+1. 使用带预训练的resnet18  来训练73mnist              √
+2. 设置fine-turning resnet 18 即冻结大部分网络参数。  调试得到一个效果比较好的模型作为teacher-model。（doing）
+
+尝试了两个方法：
+
+resnet18 主干网络固定，训练分类头。
+
+resnet18 主干网络lr 1e-4  分类头lr 1e-3 
+
+**效果都不太好。**
+
+3. 选embeddingNet or cnn9 作为student model 进行知识蒸馏训练。
+
+
+
+
+

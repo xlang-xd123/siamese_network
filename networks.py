@@ -96,16 +96,16 @@ class EmbeddingNet(nn.Module):
 
 
 class SiameseNet(nn.Module):
-    def __init__(self, embedding_net):
+    def __init__(self, backbone):
         super(SiameseNet, self).__init__()
-        self.embedding_net = embedding_net
+        self.backbone = backbone
 
         # self.nonlinear = nn.PReLU()
         # self.fc1 = nn.Linear(2, n_classes)
 
     def forward(self, x1, x2):
-        output1 = self.embedding_net(x1)
-        output2 = self.embedding_net(x2)
+        output1 = self.backbone(x1)
+        output2 = self.backbone(x2)
         # scores1 = F.log_softmax(self.fc1(output1), dim=-1)
         # scores2 = F.log_softmax(self.fc1(output2), dim=-1)
         return output1, output2

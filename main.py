@@ -1,17 +1,14 @@
 # 1引入模块
 import argparse
-from datasets import GetData
 from datasets import *
 from networks import *
-import torch
 from torch.optim import lr_scheduler
 import torch.optim as optim
-from torch.autograd import Variable
 from losses import myLoss,ContrastiveLoss,ContrastiveLoss_class_loss
 from metrics import *
 from trainer import fit
 from torchvision.datasets import MNIST
-from torchvision import transforms
+from torchvision import transforms,models
 mean, std = 0.1307, 0.3081
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
@@ -33,27 +30,36 @@ def parse_opt(known=False):
     parser.add_argument('--activation_funciton', type=str, default='PReLU', help='PReLU,ReLU,LeakyReLU,RReLU,PReLU')
     parser.add_argument('--add_batchnorm', type= int, default=1, help='')
     parser.add_argument('--optimizer', type=str, default='Adam', help='Adam,SGD,sgd-nestov')
+    parser.add_argument('--freeze_flag', type=int, default= 0 , help='freeze method ')
 
     return parser.parse_args()
-def load_data(opt):
+def load_data(opt,trans = 1):
+    if trans == 0:
+        mean, std = 0.1307, 0.3081
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((mean,), (std,))
+        ])
+    if trans == 1:
+        transform = transforms.Compose([
+            # transforms.Resize((224, 224)),
+            transforms.Grayscale(3),
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307, 0.1307, 0.1307), (0.3081, 0.3081, 0.3081)),
+        ])
+
     if opt.debug_mode:
         # 这一部分是debug的时候用到的。
         train_dataset = MNIST('../data/MNIST', train=True, download=True,
-                                     transform=transforms.Compose([
-                                         transforms.ToTensor(),
-                                         transforms.Normalize((mean,), (std,))
-                                     ]))
+                                     transform=transform)
         test_dataset = MNIST('../data/MNIST', train=False, download=True,
-                                    transform=transforms.Compose([
-                                        transforms.ToTensor(),
-                                        transforms.Normalize((mean,), (std,))
-                                    ]))
+                                    transform=transform)
         opt.epochs = 1
         print('---- debug mode -----')
     else:
         # 正常情况下走这个分支。
-        train_dataset = GetData(opt.train_data_root, train=True)
-        test_dataset = GetData(opt.test_data_root, train=False)
+        train_dataset = GetData(opt.train_data_root,transform = transform, train=True)
+        test_dataset = GetData(opt.test_data_root,transform = transform, train=False)
 
     # 将数据集 转化成 2个img 的形式或者  4个img 的形式,然后装入dataloader
     if opt.ues4imgextend:
@@ -80,12 +86,21 @@ def load_model(opt):
         backbone = EmbeddingNet(opt)
     elif opt.backbone == 1 :
         print('load resnet18')
-        backbone = resnet18(opt)
+        backbone = models.resnet18(pretrained=True)
+        # if opt.freeze_flag == 1:
+        #     for param in backbone.parameters():
+        #         param.requires_grad = False
+        #     print("conv1.weights[0, 0, ...]:\n {}".format(backbone.conv1.weight[0, 0, ...]))
+
+        num_ftrs = backbone.fc.in_features
+        backbone.fc = nn.Linear(num_ftrs, opt.backbone_out)
+
+
     elif opt.backbone == 2 :
         print('load cnn9')
         backbone = Cnn9Net(opt)
-        #todo
-        pass
+
+
 
     if opt.ues4imgextend:
         model = SiameseNet_4img(backbone)
@@ -101,6 +116,15 @@ def load_loss(opt):
         pass
 #     如果还有其他的loss直接添加
 def load_optimizer(opt,model):
+    if opt.freeze_flag :
+        fc_params_id = list(map(id, model.backbone.fc.parameters()))  # 返回的是parameters的 内存地址
+        base_params = filter(lambda p: id(p) not in fc_params_id, model.parameters())
+        optimizer = optim.SGD([
+            {'params': base_params, 'lr': opt.lr * 0.1},  # 0，如果设置为0 ，也是一种冻结卷积层的方法，
+            {'params': model.backbone.fc.parameters(), 'lr': opt.lr}], momentum=0.9)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=8, gamma=0.1)
+        return optimizer, scheduler, None
+
     if opt.use_marginal and not opt.ues4imgextend:#如果使用marginal
         print('use marginal')
 
@@ -114,6 +138,9 @@ def load_optimizer(opt,model):
         metric_fc = None
         param = model.parameters()
         # optimizer = optim.Adam(model.parameters(), lr=opt.lr)
+
+
+
     if opt.optimizer =='Adam':
         optimizer = optim.Adam(param, lr=opt.lr)
     elif opt.optimizer =='SGD':
@@ -121,7 +148,7 @@ def load_optimizer(opt,model):
     elif opt.optimizer == 'AdamW':
         optimizer = optim.AdamW(param, lr=opt.lr, correct_bias=False)
     elif opt.optimizer == 'sgd-nestov':
-        optimizer = optim.SGD(param, lr=opt.lr, nesterov= True)
+        optimizer = optim.SGD(param, lr=opt.lr, momentum=0.9,weight_decay= 0.4,nesterov= True)
 
 
     scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)

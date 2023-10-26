@@ -17,16 +17,12 @@ import torch
 # from torchvision.datasets import MNIST
 from torchvision import transforms
 
-mean, std = 0.1307, 0.3081
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((mean,), (std,))
-])
+
 
 
 # a = np.array([[1,2],[3,4],[5,6]])
 class GetData(Dataset):
-    def __init__(self, root_dir, transform=transform, train=True):
+    def __init__(self, root_dir, transform, train=True):
         self.train = train
         self.transform = transform
         item = open(root_dir, "r")
