@@ -33,7 +33,7 @@ def parse_opt(known=False):
     parser.add_argument('--freeze_flag', type=int, default= 0 , help='freeze method ')
 
     return parser.parse_args()
-def load_data(opt,trans = 1):
+def load_data(opt,trans = 0):
     if trans == 0:
         mean, std = 0.1307, 0.3081
         transform = transforms.Compose([
@@ -112,8 +112,11 @@ def load_model(opt):
 def load_loss(opt):
     if opt.loss_fn == 'ContrastiveLoss':
         return ContrastiveLoss(1.)
-    else:
-        pass
+    elif opt.loss_fn == 'myloss':
+        return myLoss(1.)
+
+
+        # pass
 #     如果还有其他的loss直接添加
 def load_optimizer(opt,model):
     if opt.freeze_flag :
