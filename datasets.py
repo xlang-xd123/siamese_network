@@ -34,18 +34,19 @@ class GetData(Dataset):
         for i in pbar:
             pbar.set_description("Processing ")
             img, label = i[:-1].split(' ')
-            img = np.array(Image.open(img))
+            # img = np.array(Image.open(img))
             gg.append(img)
             #             print('label' + label)
             ll.append(int(label))
+            # print(img)
         #             print('still working '+ 'll')
 
         #             print(img.shape,label)
         #         if self.train == True:
         self.train_labels = torch.tensor(ll, )
-        self.train_data = torch.tensor(gg)
+        self.train_data = gg
         self.test_labels = torch.tensor(ll)
-        self.test_data = torch.tensor(gg)
+        self.test_data = gg
 
     #         print(self.item)
     #         # self
@@ -113,7 +114,7 @@ class SiameseMNIST(Dataset):
     def __getitem__(self, index):
         if self.train:
             target = np.random.randint(0, 2)
-            img1, label1 = self.train_data[index], self.train_labels[index].item()
+            img1, label1 =self.load( self.train_data[index]), self.train_labels[index].item()
             if target == 1:
                 siamese_index = index
                 while siamese_index == index:
@@ -121,7 +122,7 @@ class SiameseMNIST(Dataset):
             else:
                 siamese_label = np.random.choice(list(self.labels_set - set([label1])))
                 siamese_index = np.random.choice(self.label_to_indices[siamese_label])
-            img2 = self.train_data[siamese_index]
+            img2 =self.load(self.train_data[siamese_index])
             label2 = self.train_labels[index].item()
         else:
             img1 = self.test_data[self.test_pairs[index][0]]
@@ -130,7 +131,7 @@ class SiameseMNIST(Dataset):
 
         img1 = Image.fromarray(img1.numpy(), mode='L')
         img2 = Image.fromarray(img2.numpy(), mode='L')
-        if self.transform is not None:
+        if self.transform is not None :
             img1 = self.transform(img1)
             img2 = self.transform(img2)
         if self.train:
@@ -141,6 +142,11 @@ class SiameseMNIST(Dataset):
 
     def __len__(self):
         return len(self.mnist_dataset)
+    def load(self,str):
+        img = np.array(Image.open(str))
+
+        img = torch.tensor(img)
+        return img
 
 class SiameseMNIST2(Dataset):
     """

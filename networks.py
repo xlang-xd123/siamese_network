@@ -72,12 +72,12 @@ class EmbeddingNet(nn.Module):
     def __init__(self,opt):
         super(EmbeddingNet, self).__init__()
 
-        self.convnet = nn.Sequential(nn.Conv2d(1, 32, 5), smart_activation(opt,32),
+        self.convnet = nn.Sequential(nn.Conv2d(1, 16, 5), smart_activation(opt,16),
                                      nn.MaxPool2d(2, stride=2),
-                                     nn.Conv2d(32, 64, 5), smart_activation(opt,64),
+                                     nn.Conv2d(16, 16, 5), smart_activation(opt,16),
                                      nn.MaxPool2d(2, stride=2))
 
-        self.fc = nn.Sequential(nn.Linear(64 * 4 * 4, 256),
+        self.fc = nn.Sequential(nn.Linear(293904, 256),
                                 smart_activation(opt),
                                 nn.Linear(256, 256),
                                 smart_activation(opt),
@@ -88,6 +88,7 @@ class EmbeddingNet(nn.Module):
     def forward(self, x):
         output = self.convnet(x)
         output = output.view(output.size()[0], -1)
+        # print(output.shape)
         output = self.fc(output)
         return output
 

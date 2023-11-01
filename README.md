@@ -74,3 +74,9 @@ resnet18 主干网络lr 1e-4  分类头lr 1e-3
 
 
 
+训练 Iris :
+
+```
+ python main.py --train_data_root CASIA-Iris-Lamp/train.txt --test_data_root CASIA-Iris-Lamp/test.txt --batch-size 16
+```
+

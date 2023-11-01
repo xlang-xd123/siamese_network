@@ -28,7 +28,7 @@ parser.add_argument('--epochs', default=200, type=int, metavar='N', help='number
 parser.add_argument('--schedule', default=[120, 160], nargs='*', type=int, help='learning rate schedule (when to drop lr by 10x); does not take effect if --cos is on')
 parser.add_argument('--cos', action='store_true', help='use cosine lr schedule')
 
-parser.add_argument('--batch-size', default=512, type=int, metavar='N', help='mini-batch size')
+parser.add_argument('--batch-size', default=8, type=int, metavar='N', help='mini-batch size')
 parser.add_argument('--wd', default=5e-4, type=float, metavar='W', help='weight decay')
 
 # moco specific configs:
@@ -63,40 +63,54 @@ if args.results_dir == '':
     args.results_dir = './cache-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S-moco")
 
 print(args)
-
-class CIFAR10Pair(CIFAR10):
+from datasets import GetData
+class CIFAR10Pair(GetData):
     """CIFAR10 Dataset.
     """
     def __getitem__(self, index):
-        img = self.data[index]
-        img = Image.fromarray(img)
-
+        root, label = self.item[index][:-1].split(' ')
+        img = Image.open(root)
+        # img = torch.tensor(img)
         if self.transform is not None:
             im_1 = self.transform(img)
             im_2 = self.transform(img)
 
-        return im_1, im_2
+        # return torch.tensor(img), int(label)
+        # img = self.data[index]
+        # img = Image.fromarray(img)
+        #
+        # if self.transform is not None:
+        #     im_1 = self.transform(img)
+        #     im_2 = self.transform(img)
 
+        return im_1, im_2
+mean, std = 0.1307, 0.3081
 train_transform = transforms.Compose([
-    transforms.RandomResizedCrop(32),
+    transforms.RandomResizedCrop(320),
     transforms.RandomHorizontalFlip(p=0.5),
     transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
     transforms.RandomGrayscale(p=0.2),
+    # transforms.Resize([224, 224]),
+    # transforms.Normalize((mean,), (std,)),
     transforms.ToTensor(),
-    transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
+transforms.Normalize((mean,), (std,))])
+    # transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
 
 test_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
+# transforms.Resize([224, 224]),
+    # transforms.Normalize((mean,), (std,)),
+    transforms.ToTensor(),transforms.Normalize((mean,), (std,))])
+
+    # transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
 
 # data prepare
-train_data = CIFAR10Pair(root='data', train=True, transform=train_transform, download=True)
+train_data = CIFAR10Pair(root_dir='CASIA-Iris-Lamp/train.txt ', train=True, transform=train_transform)
 train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True,  pin_memory=True, drop_last=True)
 
-memory_data = CIFAR10(root='data', train=True, transform=test_transform, download=True)
+memory_data = GetData(root_dir='CASIA-Iris-Lamp/test.txt ', train=True, transform=test_transform)
 memory_loader = DataLoader(memory_data, batch_size=args.batch_size, shuffle=False,  pin_memory=True)
 
-test_data = CIFAR10(root='data', train=False, transform=test_transform, download=True)
+test_data = GetData(root_dir='CASIA-Iris-Lamp/test.txt ', train=False, transform=test_transform)
 test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False, pin_memory=True)
 
 
@@ -144,7 +158,7 @@ class ModelBase(nn.Module):
         self.net = []
         for name, module in net.named_children():
             if name == 'conv1':
-                module = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+                module = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1, bias=False)
             if isinstance(module, nn.MaxPool2d):
                 continue
             if isinstance(module, nn.Linear):
@@ -306,6 +320,7 @@ def train(net, data_loader, train_optimizer, epoch, args):
 
     total_loss, total_num, train_bar = 0.0, 0, tqdm(data_loader)
     for im_1, im_2 in train_bar:
+        # print(im_2.shape)
         im_1, im_2 = im_1.cuda(non_blocking=True), im_2.cuda(non_blocking=True)
 
         loss = net(im_1, im_2)
@@ -339,7 +354,7 @@ def adjust_learning_rate(optimizer, epoch, args):
 # test using a knn monitor
 def test(net, memory_data_loader, test_data_loader, epoch, args):
     net.eval()
-    classes = len(memory_data_loader.dataset.classes)
+    classes = 411
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
     with torch.no_grad():
         # generate feature bank
