@@ -80,3 +80,13 @@ resnet18 主干网络lr 1e-4  分类头lr 1e-3
  python main.py --train_data_root CASIA-Iris-Lamp/train.txt --test_data_root CASIA-Iris-Lamp/test.txt --batch-size 16
 ```
 
+
+
+训练100类的iris
+
+```
+python .\main.py --train_data_root CASIA-Iris-Lamp/train.txt --test_data_root CASIA-Iris-Lamp/test.txt --epochs 100 --backbone 1 --batch-size 16 --n_classes 100
+```
+
+
+
