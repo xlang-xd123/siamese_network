@@ -77,7 +77,7 @@ class EmbeddingNet(nn.Module):
                                      nn.Conv2d(16, 16, 5), smart_activation(opt,16),
                                      nn.MaxPool2d(2, stride=2))
 
-        self.fc = nn.Sequential(nn.Linear(293904, 256),
+        self.fc = nn.Sequential(nn.Linear(44944, 256),
                                 smart_activation(opt),
                                 nn.Linear(256, 256),
                                 smart_activation(opt),

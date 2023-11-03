@@ -12,7 +12,7 @@ from torchvision import transforms,models
 mean, std = 0.1307, 0.3081
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n_classes', type=int, default= 10, help='number of classes')
+    parser.add_argument('--n_classes', type=int, default= 100, help='number of classes')
     parser.add_argument('--train_data_root', type=str, default='mnist/train.txt', help='train data path')
     parser.add_argument('--test_data_root', type=str, default='mnist/test.txt', help='test data path')
     # parser.add_argument('--ues_4_img_extend', type=bool, default=False, help='set True to use 4 img')
@@ -31,21 +31,23 @@ def parse_opt(known=False):
     parser.add_argument('--add_batchnorm', type= int, default=1, help='')
     parser.add_argument('--optimizer', type=str, default='Adam', help='Adam,SGD,sgd-nestov')
     parser.add_argument('--freeze_flag', type=int, default= 0 , help='freeze method ')
+    parser.add_argument('--distance', type=str, default='cos', help='distance function ')
 
     return parser.parse_args()
-def load_data(opt,trans = 0):
+def load_data(opt,trans = 1):
+    mean, std = 0.1307, 0.3081
     if trans == 0:
-        mean, std = 0.1307, 0.3081
+
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((mean,), (std,))
         ])
     if trans == 1:
         transform = transforms.Compose([
-            # transforms.Resize((224, 224)),
-            transforms.Grayscale(3),
+            transforms.Resize((224, 224)),
+            # transforms.Grayscale(3),
             transforms.ToTensor(),
-            transforms.Normalize((0.1307, 0.1307, 0.1307), (0.3081, 0.3081, 0.3081)),
+            transforms.Normalize((mean,), (std,))
         ])
 
     if opt.debug_mode:
@@ -86,11 +88,14 @@ def load_model(opt):
         backbone = EmbeddingNet(opt)
     elif opt.backbone == 1 :
         print('load resnet18')
+        # backbone = resnet18(opt)
         backbone = models.resnet18(pretrained=True)
-        # if opt.freeze_flag == 1:
-        #     for param in backbone.parameters():
-        #         param.requires_grad = False
-        #     print("conv1.weights[0, 0, ...]:\n {}".format(backbone.conv1.weight[0, 0, ...]))
+        backbone.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,bias=False)
+        backbone.fc = nn.Linear(512 , opt.n_classes)
+        if opt.freeze_flag == 1:
+            for param in backbone.parameters():
+                param.requires_grad = False
+            print("conv1.weights[0, 0, ...]:\n {}".format(backbone.conv1.weight[0, 0, ...]))
 
         num_ftrs = backbone.fc.in_features
         backbone.fc = nn.Linear(num_ftrs, opt.backbone_out)
@@ -111,7 +116,7 @@ def load_model(opt):
     return model
 def load_loss(opt):
     if opt.loss_fn == 'ContrastiveLoss':
-        return ContrastiveLoss(1.)
+        return ContrastiveLoss(opt)
     elif opt.loss_fn == 'myloss':
         return myLoss(1.)
 

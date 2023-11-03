@@ -125,8 +125,8 @@ class SiameseMNIST(Dataset):
             img2 =self.load(self.train_data[siamese_index])
             label2 = self.train_labels[index].item()
         else:
-            img1 = self.test_data[self.test_pairs[index][0]]
-            img2 = self.test_data[self.test_pairs[index][1]]
+            img1 =self.load( self.test_data[self.test_pairs[index][0]])
+            img2 = self.load(self.test_data[self.test_pairs[index][1]])
             target = self.test_pairs[index][2]
 
         img1 = Image.fromarray(img1.numpy(), mode='L')

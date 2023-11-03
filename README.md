@@ -32,7 +32,7 @@ python main.py --backbone 1 --ues4imgextend 1 --backbone_out 4
 
 --optimizer 选择优化器 ，Adam，SGD，AdamW，sgd-nestov 
 
-
+--function 可以选择 不同的计算距离的函数。DotProductSimilarity BiLinearSimilarity PearsonCorrelation O_2 CosineSimilarity
 
 
 
@@ -58,7 +58,7 @@ python main.py --backbone 2 --use_marginal True --activation_funciton RReLU
 10.26
 
 1. 使用带预训练的resnet18  来训练73mnist              √
-2. 设置fine-turning resnet 18 即冻结大部分网络参数。  调试得到一个效果比较好的模型作为teacher-model。（doing）
+2. 设置fine-turning resnet 18 即冻结大部分网络参数。  调试得到一个效果比较好的模型作为teacher-model。
 
 尝试了两个方法：
 
