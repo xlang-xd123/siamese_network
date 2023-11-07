@@ -100,3 +100,11 @@ python .\main.py --train_data_root CASIA-Iris-Lamp/train.txt --test_data_root CA
 
 --backbone：0 是‘embeddingNet’  ，1 是 'resnet18'，2 是‘cnn9’ 设置backbone,默认为 0 
 
+for example:
+
+```
+python triplet.py --train_data_root CASIA-Iris-Lamp/train.txt --test_data_root CASIA-Iris-Lamp/test.txt --epochs 100 --backbone 1 --n_classes 100  --loss_fn OnlineTripletLoss --select RandomNegativeTripletSelector 
+```
+
+
+
