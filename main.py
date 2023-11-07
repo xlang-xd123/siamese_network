@@ -9,7 +9,6 @@ from metrics import *
 from trainer import fit
 from torchvision.datasets import MNIST
 from torchvision import transforms,models
-mean, std = 0.1307, 0.3081
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--n_classes', type=int, default= 100, help='number of classes')
